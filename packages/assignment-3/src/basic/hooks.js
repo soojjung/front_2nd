@@ -9,10 +9,11 @@ export function createHooks(callback) {
   const useState = (initState) => {
     const currentIndex = stateIndex;
 
+    // 방법1
     if (states[stateIndex] === undefined) {
       states[stateIndex] = initState;
     }
-    // 혹은 아래 방법 - 조건 추가해야 불필요한 states가 계속 늘어나는걸 방지한다.
+    // 방법2 - 조건 추가해야 불필요한 states가 계속 늘어나는걸 방지한다.
     //  if (states.length === stateIndex) {
     //   states.push(initState);
     // }
@@ -20,7 +21,7 @@ export function createHooks(callback) {
     const state = states[currentIndex];
 
     const setState = (newValue) => {
-      if (!deepEquals(states[currentIndex], newValue)) {
+      if (!shallowEquals(states[currentIndex], newValue)) {
         states[currentIndex] = newValue;
 
         if (!!callback && typeof callback === "function") {
@@ -35,7 +36,10 @@ export function createHooks(callback) {
 
   const useMemo = (fn, refs) => {
     const currentIndex = memoIndex;
-    if (!memos[currentIndex] || !deepEquals(memos[currentIndex].deps, refs)) {
+    if (
+      !memos[currentIndex] ||
+      !shallowEquals(memos[currentIndex].deps, refs)
+    ) {
       memos[currentIndex] = { value: fn(), deps: refs };
     }
 
@@ -51,15 +55,35 @@ export function createHooks(callback) {
   return { useState, useMemo, resetContext };
 }
 
-function deepEquals(a, b) {
-  if (a === b) return true;
-  if (typeof a !== "object" || typeof b !== "object" || a == null || b == null)
-    return false;
-  const keysA = Object.keys(a),
-    keysB = Object.keys(b);
-  if (keysA.length !== keysB.length) return false;
-  for (const key of keysA) {
-    if (!keysB.includes(key) || !deepEquals(a[key], b[key])) return false;
+export function shallowEquals(objA, objB) {
+  if (Object.is(objA, objB)) {
+    return true;
   }
+
+  if (
+    typeof objA !== "object" ||
+    objA === null ||
+    typeof objB !== "object" ||
+    objB === null
+  ) {
+    return false;
+  }
+
+  const keysA = Object.keys(objA);
+  const keysB = Object.keys(objB);
+
+  if (keysA.length !== keysB.length) {
+    return false;
+  }
+
+  for (let i = 0; i < keysA.length; i++) {
+    if (
+      !Object.prototype.hasOwnProperty.call(objB, keysA[i]) ||
+      !Object.is(objA[keysA[i]], objB[keysA[i]])
+    ) {
+      return false;
+    }
+  }
+
   return true;
 }

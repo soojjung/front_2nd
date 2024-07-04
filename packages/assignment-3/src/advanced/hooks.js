@@ -1,3 +1,5 @@
+import { shallowEquals } from "../basic/hooks";
+
 export function createHooks(callback) {
   const states = [];
   let stateIndex = 0;
@@ -16,7 +18,7 @@ export function createHooks(callback) {
     const state = states[currentIndex];
 
     const setState = async (newValue) => {
-      if (!deepEquals(states[currentIndex], newValue)) {
+      if (!shallowEquals(states[currentIndex], newValue)) {
         states[currentIndex] = newValue;
 
         // 방법1 - cancelAnimationFrame 사용
@@ -53,7 +55,10 @@ export function createHooks(callback) {
 
   const useMemo = (fn, refs) => {
     const currentIndex = memoIndex;
-    if (!memos[currentIndex] || !deepEquals(memos[currentIndex].deps, refs)) {
+    if (
+      !memos[currentIndex] ||
+      !shallowEquals(memos[currentIndex].deps, refs)
+    ) {
       memos[currentIndex] = { value: fn(), deps: refs };
     }
 
@@ -67,17 +72,4 @@ export function createHooks(callback) {
   };
 
   return { useState, useMemo, resetContext };
-}
-
-function deepEquals(a, b) {
-  if (a === b) return true;
-  if (typeof a !== "object" || typeof b !== "object" || a == null || b == null)
-    return false;
-  const keysA = Object.keys(a),
-    keysB = Object.keys(b);
-  if (keysA.length !== keysB.length) return false;
-  for (const key of keysA) {
-    if (!keysB.includes(key) || !deepEquals(a[key], b[key])) return false;
-  }
-  return true;
 }
