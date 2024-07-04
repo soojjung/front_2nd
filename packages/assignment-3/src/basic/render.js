@@ -48,7 +48,7 @@ function updateAttributes(target, newProps, oldProps) {
 
 export function render(parent, newNode, oldNode, index = 0) {
   if (!parent) {
-    parent = document.createElement("div");
+    return;
   }
   // 1. 만약 newNode가 없고 oldNode만 있다면 parent에서 oldNode를 제거 후 종료
   if (!newNode && oldNode) {

@@ -8,10 +8,14 @@ export function createHooks(callback) {
   // useState는 새로운 state를 만들고 setState는 기존 state를 변경한다.
   const useState = (initState) => {
     const currentIndex = stateIndex;
-    if (states.length === stateIndex) {
-      // 조건 추가하여 불필요한 states가 계속 늘어나는걸 방지
-      states.push(initState);
+
+    if (states[stateIndex] === undefined) {
+      states[stateIndex] = initState;
     }
+    // 혹은 아래 방법 - 조건 추가해야 불필요한 states가 계속 늘어나는걸 방지한다.
+    //  if (states.length === stateIndex) {
+    //   states.push(initState);
+    // }
 
     const state = states[currentIndex];
 
