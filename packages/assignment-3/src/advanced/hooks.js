@@ -15,18 +15,35 @@ export function createHooks(callback) {
 
     const state = states[currentIndex];
 
-    const setState = (newValue) => {
+    const setState = async (newValue) => {
       if (!deepEquals(states[currentIndex], newValue)) {
         states[currentIndex] = newValue;
 
-        if (rAFId === null) {
-          rAFId = requestAnimationFrame(() => {
-            if (typeof callback === "function") {
-              callback();
-            }
-            rAFId = null;
-          });
+        // 방법1 - cancelAnimationFrame 사용
+        if (rAFId) {
+          cancelAnimationFrame(rAFId);
         }
+
+        rAFId = requestAnimationFrame(() => {
+          if (typeof callback === "function") {
+            callback();
+          }
+          rAFId = null;
+        });
+
+        // 방법2 - Promise 사용
+        // if (rAFId === null) {
+        //   rAFId = new Promise((resolve) =>
+        //     requestAnimationFrame(() => {
+        //       if (typeof callback === "function") {
+        //         resolve(callback());
+        //       }
+        //     })
+        //   );
+        //   await rAFId;
+        //   // cancelAnimationFrame(rAFId); // resolve된 후이기 때문에 background task queue에 해당 함수가 제거되어 cancelAnimationFrame을 해줄 필요가 없다.
+        //   rAFId = null;
+        // }
       }
     };
 
