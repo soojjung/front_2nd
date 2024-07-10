@@ -2,6 +2,13 @@ module.exports = {
   root: true,
   env: { browser: true, es2021: true },
   extends: ['eslint:recommended', 'prettier', 'plugin:prettier/recommended'], // 우선순위 앞 높음
+  parserOptions: {
+    ecmaFeatures: {
+      jsx: true,
+    },
+    ecmaVersion: 12,
+    sourceType: 'module',
+  },
   plugins: ['prettier'],
   ignorePatterns: ['dist', '.eslintrc.cjs', '**/__tests__/*.js'], // eslint 무시
   rules: {
