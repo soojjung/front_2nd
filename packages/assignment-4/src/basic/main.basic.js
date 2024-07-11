@@ -1,8 +1,51 @@
-import { PRODUCTS, DISCOUNT_CONFIG, INITIAL_COUNT } from './config';
-import { setAttributes, createLayout } from './render';
+// 상품 목록
+const PRODUCTS = [
+  { id: 'p1', name: '상품1', price: 10000 },
+  { id: 'p2', name: '상품2', price: 20000 },
+  { id: 'p3', name: '상품3', price: 30000 },
+];
 
-const getProductInfo = productId => {
-  const $productInfo = document.getElementById(productId);
+const DISCOUNT_CONFIG = {
+  DISCOUNT_BY_PRODUCT_ID: {
+    p1: 0.1,
+    p2: 0.15,
+    p3: 0.2,
+  },
+  MINIMUM_COUNT: {
+    PER_PRODUCT: 10,
+    TOTAL_PRODUCT: 30,
+  },
+  TOTAL_DISCOUNT_RATE: 0.25,
+};
+
+const INITIAL_COUNT = 1;
+
+// 속성 부여 함수
+const setAttributes = (target, attributes) => {
+  for (const [key, attribute] of Object.entries(attributes)) {
+    if (typeof attribute === 'object') {
+      setAttributes(target[key], attribute);
+    } else {
+      target[key] = attribute;
+    }
+  }
+};
+
+// 자식요소 append
+const appendChildElements = (target, ...$child) => {
+  return target.append(...$child.flat());
+};
+
+// 레이아웃 구성
+const createLayout = (tagName, attributes = {}, $parent) => {
+  const $layout = document.createElement(tagName);
+  setAttributes($layout, attributes);
+  appendChildElements($parent, $layout);
+  return $layout;
+};
+
+// 상품에 대한 이름, 가격, 수량 조회
+const getProductInfo = $productInfo => {
   const [_, name, price, count] = $productInfo.textContent.match(
     /(.+?) - (\d+)원 x (\d+)/,
   );
@@ -21,8 +64,7 @@ const getDiscountedPricePerProduct = (productId, productInfo) => {
   return price * count * (1 - discountRate);
 };
 
-// 예/아니오로 나온다 >> is , has , can
-// 할인 적용 여부 - 총 수량이 30개 이상인 경우 + 조건에 해당하는지 여부 ..
+// 할인 적용 여부 - 총 수량이 30개 이상인 경우 추가
 const canApplyTotalDiscount = totalDiscountedPrice => {
   const { totalPrice, totalCount } = getProductTotalInfo();
   return (
@@ -286,7 +328,6 @@ const buildCart = () => {
     },
     $container,
   );
-
   createProductOption();
 
   createLayout(
