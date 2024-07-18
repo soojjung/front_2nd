@@ -1,10 +1,16 @@
 import { useState } from "react";
 import { describe, expect, test, vi } from "vitest";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
-import { CartPage } from "../../refactoring/components/CartPage";
-import { AdminPage } from "../../refactoring/components/AdminPage";
-import { Coupon, Product } from "../../types";
+import { CartItem, Coupon, Product } from "@/types";
+import {
+  calculateItemTotal,
+  getMaxApplicableDiscount,
+  calculateCartTotal,
+  updateCartItemQuantity,
+} from "@/refactoring/hooks/utils/cartUtils";
 
+import { CartPage } from "@/refactoring/components/CartPage";
+import { AdminPage } from "@/refactoring/components/AdminPage";
 import CurrentCoupon from "@/refactoring/components/AdminPage/CouponForm/CurrentCoupon";
 import NewProductForm from "@/refactoring/components/AdminPage/NewProductForm";
 import EditMode from "@/refactoring/components/AdminPage/ProductItemRow/EditMode";
@@ -454,6 +460,106 @@ describe("advanced > ", () => {
       fireEvent.click(addButton);
 
       expect(handleAddNewProduct).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("Cart functions", () => {
+    const productMock = {
+      id: "1",
+      name: "테스트 상품",
+      price: 100,
+      stock: 10,
+      discounts: [
+        { quantity: 5, rate: 0.1 },
+        { quantity: 10, rate: 0.2 },
+      ],
+    };
+
+    const cartItemMock: CartItem = {
+      product: productMock,
+      quantity: 5,
+    };
+
+    describe("calculateItemTotal", () => {
+      test("할인이 없는 경우 총 가격 계산", () => {
+        const item = { ...cartItemMock, quantity: 1 };
+        const total = calculateItemTotal(item);
+        expect(total).toBe(100);
+      });
+
+      test("할인이 있는 경우 총 가격 계산", () => {
+        const total = calculateItemTotal(cartItemMock);
+        expect(total).toBe(450); // 5 * 100 * (1 - 0.1)
+      });
+    });
+
+    describe("getMaxApplicableDiscount", () => {
+      test("적용 가능한 할인이 없는 경우 0 반환", () => {
+        const item = { ...cartItemMock, quantity: 1 };
+        const discount = getMaxApplicableDiscount(item);
+        expect(discount).toBe(0);
+      });
+
+      test("적용 가능한 최대 할인율 반환", () => {
+        const discount = getMaxApplicableDiscount(cartItemMock);
+        expect(discount).toBe(0.1);
+      });
+    });
+
+    describe("calculateCartTotal", () => {
+      const cartMock: CartItem[] = [cartItemMock];
+      const amountCoupon: Coupon = {
+        name: "금액 쿠폰",
+        code: "AMT50",
+        discountType: "amount",
+        discountValue: 50,
+      };
+      const percentageCoupon: Coupon = {
+        name: "퍼센트 쿠폰",
+        code: "PCT10",
+        discountType: "percentage",
+        discountValue: 10,
+      };
+
+      test("쿠폰이 없는 경우 총 가격 계산", () => {
+        const total = calculateCartTotal(cartMock, null);
+        expect(total.totalBeforeDiscount).toBe(500);
+        expect(total.totalAfterDiscount).toBe(450);
+        expect(total.totalDiscount).toBe(50);
+      });
+
+      test("금액 쿠폰이 적용된 경우 총 가격 계산", () => {
+        const total = calculateCartTotal(cartMock, amountCoupon);
+        expect(total.totalBeforeDiscount).toBe(500);
+        expect(total.totalAfterDiscount).toBe(400);
+        expect(total.totalDiscount).toBe(100);
+      });
+
+      test("퍼센트 쿠폰이 적용된 경우 총 가격 계산", () => {
+        const total = calculateCartTotal(cartMock, percentageCoupon);
+        expect(total.totalBeforeDiscount).toBe(500);
+        expect(total.totalAfterDiscount).toBe(405); // 450 * 0.9
+        expect(total.totalDiscount).toBe(95);
+      });
+    });
+
+    describe("updateCartItemQuantity", () => {
+      const cartMock: CartItem[] = [cartItemMock];
+
+      test("수량이 정상적으로 업데이트되는 경우", () => {
+        const updatedCart = updateCartItemQuantity(cartMock, "1", 8);
+        expect(updatedCart[0].quantity).toBe(8);
+      });
+
+      test("수량이 재고를 초과하는 경우", () => {
+        const updatedCart = updateCartItemQuantity(cartMock, "1", 20);
+        expect(updatedCart[0].quantity).toBe(10);
+      });
+
+      test("수량이 0인 경우 아이템 제거", () => {
+        const updatedCart = updateCartItemQuantity(cartMock, "1", 0);
+        expect(updatedCart.length).toBe(0);
+      });
     });
   });
 });
