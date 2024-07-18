@@ -23,7 +23,7 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
 
-    "baseUrl": "src/refactoring",
+    "baseUrl": "src",
     "paths": {
       "@/*": ["./*"]
     }

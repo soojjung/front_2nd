@@ -1,7 +1,7 @@
-import { CartItem, Coupon, Product } from "../../../types.ts";
-import { useCart } from "../../hooks";
-import ProductItem from "./ProductItemRow.tsx";
-import CartItemRow from "./CartItemRow.tsx";
+import { CartItem, Coupon, Product } from "@/types";
+import { useCart } from "@/refactoring/hooks";
+import ProductItem from "./ProductItemRow";
+import CartItemRow from "./CartItemRow";
 
 interface Props {
   products: Product[];
@@ -19,17 +19,19 @@ export const CartPage = ({ products, coupons }: Props) => {
     selectedCoupon,
   } = useCart();
 
+  const { totalBeforeDiscount, totalAfterDiscount, totalDiscount } =
+    calculateTotal();
+
   const getRemainingStock = (product: Product) => {
     const cartItem = cart.find((item) => item.product.id === product.id);
     return product.stock - (cartItem?.quantity || 0);
   };
 
-  const { totalBeforeDiscount, totalAfterDiscount, totalDiscount } =
-    calculateTotal();
-
   const getAppliedDiscount = (item: CartItem) => {
-    const { discounts } = item.product;
-    const { quantity } = item;
+    const {
+      product: { discounts },
+      quantity,
+    } = item;
     let appliedDiscount = 0;
     for (const discount of discounts) {
       if (quantity >= discount.quantity) {

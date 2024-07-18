@@ -7,12 +7,7 @@
     "moduleResolution": "bundler",
     "allowSyntheticDefaultImports": true,
     "strict": true,
-    "noEmit": true,
-
-    "baseUrl": "src/refactoring",
-    "paths": {
-      "@/*": ["./*"]
-    }
+    "noEmit": true
   },
   "include": ["vite.config.ts"]
 }

@@ -1,6 +1,6 @@
 // useCart.ts
 import { useState } from "react";
-import { CartItem, Coupon, Product } from "../../types";
+import { CartItem, Coupon, Product } from "@/types";
 import { calculateCartTotal, updateCartItemQuantity } from "./utils/cartUtils";
 
 export const useCart = () => {
@@ -9,10 +9,8 @@ export const useCart = () => {
 
   const addToCart = (product: Product) => {
     setCart((prevCart) => {
-      const existingItem = prevCart.find(
-        (item) => item.product.id === product.id
-      );
-      if (existingItem) {
+      const hasItem = prevCart.some((item) => item.product.id === product.id);
+      if (hasItem) {
         return prevCart.map((item) =>
           item.product.id === product.id
             ? { ...item, quantity: Math.min(item.quantity + 1, product.stock) }
