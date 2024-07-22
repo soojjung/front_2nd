@@ -63,6 +63,14 @@ jobs:
               body: message,
             });
 
+            // 포크된 저장소에 코멘트를 남김
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: message
+            })
+
   lint:
     runs-on: ubuntu-latest
     steps:
