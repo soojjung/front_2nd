@@ -14,21 +14,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v4
-
-      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
 
       - name: Read .nvmrc
         id: node_version
-        run: echo ::set-output name=NODE_VERSION::$(cat .nvmrc)
+        run: echo ::set-output name=NODE_VERSION:$(cat .nvmrc)
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ steps.node_version.outputs.NODE_VERSION }}
-
-      - name: Install dependencies
-        run: pnpm install
+          node-version: ${{steps.node_version.outputs.NODE_VERSION}}
 
       - name: Build application
         run: pnpm -F assignment-6 build
