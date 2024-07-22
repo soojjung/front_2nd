@@ -40,33 +40,17 @@ jobs:
         with:
           github-token: ${{ secrets.TOKEN_FOR_CI }}
           script: |
-            const { context, getOctokit } = require('@actions/github');
-            const github = getOctokit(process.env.TOKEN_FOR_CI);
-
-            const issue_number = context.payload.pull_request.number;
-            const baseRepoFullName = context.payload.pull_request.base.repo.full_name.split('/');
-            const baseOwner = baseRepoFullName[0];
-            const baseRepo = baseRepoFullName[1];
-
             const message = `
             ## Build Failure :x:
             The build for this PR has failed. Please check the logs for more details.
             `;
 
-            await github.rest.issues.createComment({
+            github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
               body: message
             })
-              
-            // 원본 저장소에 코멘트를 남김
-            await github.rest.issues.createComment({
-              owner: baseOwner,
-              repo: baseRepo,
-              issue_number,
-              body: message,
-            });
 
   lint:
     runs-on: ubuntu-latest
