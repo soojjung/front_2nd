@@ -51,6 +51,13 @@ jobs:
             The build for this PR has failed. Please check the logs for more details.
             `;
 
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: message
+            })
+
             const { context, getOctokit } = require('@actions/github');
             const github = getOctokit(process.env.TOKEN_FOR_CI);
             const issue_number = context.payload.pull_request.number;
@@ -58,12 +65,13 @@ jobs:
             const baseOwner = baseRepoFullName[0];
             const baseRepo = baseRepoFullName[1];
 
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: message
-            })
+            // 원본 저장소에 코멘트를 남김
+            await github.rest.issues.createComment({
+              owner: baseOwner,
+              repo: baseRepo,
+              issue_number,
+              body: message,
+            });
 
   lint:
     runs-on: ubuntu-latest
