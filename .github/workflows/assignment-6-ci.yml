@@ -23,12 +23,12 @@ jobs:
 
       - name: Read .nvmrc
         id: node_version
-        run: echo ::set-output name=NODE_VERSION::$(cat .nvmrc)
+        run: echo "NODE_VERSION=$(cat .nvmrc)" >> $GITHUB_ENV
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ steps.node_version.outputs.NODE_VERSION }}
+          node-version: ${{ env.NODE_VERSION }}
 
       - name: Install dependencies
         run: pnpm install
@@ -43,7 +43,7 @@ jobs:
           github-token: ${{ secrets.TOKEN_FOR_CI }}
           script: |
             const { context, getOctokit } = require('@actions/github');
-            const github = getOctokit(process.env.GITHUB_TOKEN);
+            const github = getOctokit(process.env.TOKEN_FOR_CI);
 
             const issue_number = context.payload.pull_request.number;
             const baseRepoFullName = context.payload.pull_request.base.repo.full_name.split('/');
@@ -55,15 +55,13 @@ jobs:
             The build for this PR has failed. Please check the logs for more details.
             `;
 
-            // PR이 포크된 저장소에서 제출된 경우만 원본 저장소에 코멘트를 남김
-            if (context.repo.owner !== baseOwner) {
-              await github.rest.issues.createComment({
-                owner: baseOwner,
-                repo: baseRepo,
-                issue_number,
-                body: message,
-              });
-            }
+            // 원본 저장소에 코멘트를 남김
+            await github.rest.issues.createComment({
+              owner: baseOwner,
+              repo: baseRepo,
+              issue_number,
+              body: message,
+            });
 
   lint:
     runs-on: ubuntu-latest
