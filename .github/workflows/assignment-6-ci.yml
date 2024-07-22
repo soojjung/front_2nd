@@ -65,14 +65,6 @@ jobs:
               body: message
             })
 
-            // 원본 저장소에 코멘트를 남김
-            github.rest.issues.createComment({
-              owner: baseOwner,
-              repo: baseRepo,
-              issue_number,
-              body: message,
-            });
-
   lint:
     runs-on: ubuntu-latest
     steps:
