@@ -44,36 +44,19 @@ jobs:
         if: failure()
         uses: actions/github-script@v6
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.TOKEN_FOR_CI }}
           script: |
-            const { context, getOctokit } = require('@actions/github');
-            const github = getOctokit(process.env.GITHUB_TOKEN);
             const message = `
             ## Build Failure :x:
             The build for this PR has failed. Please check the logs for more details.
             `;
 
-            const issue_number = context.payload.pull_request.number;
-            const forkedOwner = context.repo.owner;
-            const forkedRepo = context.repo.repo;
-            const baseOwner = context.payload.pull_request.base.repo.owner.login;
-            const baseRepo = context.payload.pull_request.base.repo.name;
-
-            // 포크된 저장소에 코멘트를 남김
-            await github.rest.issues.createComment({
-              owner: forkedOwner,
-              repo: forkedRepo,
-              issue_number,
-              body: message,
-            });
-
-            // 원본 저장소에 코멘트를 남김
-            await github.rest.issues.createComment({
-              owner: baseOwner,
-              repo: baseRepo,
-              issue_number,
-              body: message,
-            });
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: message
+            })
 
   lint:
     runs-on: ubuntu-latest
