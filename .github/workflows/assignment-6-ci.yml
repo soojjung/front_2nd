@@ -1,11 +1,7 @@
-name: CI Assignment 6
-
 on:
   pull_request:
     types:
-      - synchronize
       - opened
-      - reopened
     paths:
       - "packages/assignment-6/**"
 
@@ -13,78 +9,20 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout source code
-        uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: latest
-
-      - name: Read .nvmrc
-        id: node_version
-        run: echo "NODE_VERSION=$(cat .nvmrc)" >> $GITHUB_ENV
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Install dependencies
-        run: pnpm install
-
-      - name: Build application
-        run: pnpm -F assignment-6 build
-
-      - name: Post build failure comment
-        if: failure()
-        uses: actions/github-script@v7
-        with:
-          github-token: ${{ secrets.TOKEN_FOR_CI }}
-          script: |
-            const { context, getOctokit } = require('@actions/github');
-            const github = getOctokit(process.env.GITHUB_TOKEN);
-
-            const issue_number = context.payload.pull_request.number;
-            const forkedOwner = context.repo.owner;
-            const forkedRepo = context.repo.repo;
-
-            const baseRepoFullName = context.payload.pull_request.base.repo.full_name.split('/');
-            const baseOwner = baseRepoFullName[0];
-            const baseRepo = baseRepoFullName[1];
-
-            const message = `
-            ## Build Failure :x:
-            The build for this PR has failed. Please check the logs for more details.
-            `;
-
-            // 포크된 저장소에 코멘트를 남김
-            await github.rest.issues.createComment({
-              owner: forkedOwner,
-              repo: forkedRepo,
-              issue_number,
-              body: message,
-            });
-
-            // 원본 저장소에 코멘트를 남김
-            await github.rest.issues.createComment({
-              owner: baseOwner,
-              repo: baseRepo,
-              issue_number,
-              body: message,
-            });
+      - name: job1 구현
+        run: echo "job1의 내용을 구현해주세요"
 
   lint:
     runs-on: ubuntu-latest
     steps:
-      - name: Run eslint
-        run: pnpm lint
+      - name: job2 구현
+        run: echo "job2의 내용을 구현해주세요"
 
   test:
     runs-on: ubuntu-latest
     steps:
       - name: job3 구현
-        run: pnpm test
+        run: echo "job3의 내용을 구현해주세요"
 
   lighthouse:
     runs-on: ubuntu-latest
