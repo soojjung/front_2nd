@@ -3,8 +3,8 @@ name: CI Assignment 6
 on:
   pull_request:
     types:
-      - synchronize
       - opened
+      - synchronize
     paths:
       - "packages/assignment-6/**"
 
@@ -46,14 +46,12 @@ jobs:
         with:
           github-token: ${{ secrets.TOKEN_FOR_CI }}
           script: |
-            const fs = require('fs');
-            const errorLog = fs.readFileSync('error.log', 'utf8');
             const message = `
-            ### Build Failure :x:
-            ${errorLog}
+            ## Build Failure :x:
+            The build for this PR has failed. Please check the logs for more details.
             `;
 
-            github.rest.issues.createComment({
+            await github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -82,20 +80,21 @@ jobs:
 
       - name: Run ESLint
         id: eslint
-        run: pnpm lint packages/assignment-6 --format json --output-file eslint-report.json
-        continue-on-error: true
+        run: |
+          pnpm -F assignment-6 lint 2>&1 | tee lint.log
+          exit ${PIPESTATUS[0]}
 
       - name: Post ESLint failure comment
         if: failure()
         uses: actions/github-script@v6
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.TOKEN_FOR_CI }}
           script: |
             const fs = require('fs');
-            const eslintReport = JSON.parse(fs.readFileSync('eslint-report.json', 'utf-8'));
+            const eslintReport = fs.readFileSync('lint.log', 'utf8');
             const message = `
-            ### ESLint Results
-            ${eslintReport.map(result => `${result.filePath}:${result.messages.map(msg => `${msg.line}:${msg.column} ${msg.message}`).join('\n')}`).join('\n\n')}
+            ## ESLint Results
+            ${eslintReport}
             `;
 
             // PR에 코멘트를 남김
@@ -109,14 +108,131 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - name: job3 구현
-        run: echo "job3의 내용을 구현해주세요"
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - name: Read .nvmrc
+        id: node_version
+        run: echo "NODE_VERSION=$(cat .nvmrc)" >> $GITHUB_ENV
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Run tests
+        run: |
+          cd packages/assignment-6
+          pnpm -F assignment-6 test:with_coverage
+          ls -la
+
+      - name: List coverage directory
+        run: ls -la packages/assignment-6/coverage
+
+      - name: Post test results comment
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.TOKEN_FOR_CI }}
+          script: |
+            const fs = require('fs');
+            const path = "packages/assignment-6/coverage/coverage-summary.json";
+
+            let message = `## 테스트 결과`;
+
+            const coverage = JSON.parse(fs.readFileSync(path, 'utf8'));          
+            const { total } = coverage;
+
+            message += `
+            - 라인 커버리지: ${total.lines.pct}%
+            - 브랜치 커버리지: ${total.branches.pct}%
+            - 함수 커버리지: ${total.functions.pct}%
+            - 구문 커버리지: ${total.statements.pct}%`;
+
+            message = '${{ job.status }}' === 'success' ?
+              `## 테스트 성공 ✅\n### 커버리지 결과\n${message}` :
+              `## 테스트 실패 :x:\n### 커버리지 결과\n${message}`;
+
+            // PR에 코멘트를 남김
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: message,
+            });
 
   lighthouse:
     runs-on: ubuntu-latest
     steps:
-      - name: job4 구현
-        run: echo "job4의 내용을 구현해주세요"
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - name: Read .nvmrc
+        id: node_version
+        run: echo "NODE_VERSION=$(cat .nvmrc)" >> $GITHUB_ENV
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Run Lighthouse CI
+        run: |
+          cd packages/assignment-6
+          pnpm -F assignment-6 lhci || echo "Fail to Run Lighthouse CI!"
+          ls -la lhci_reports
+
+      - name: Check if Lighthouse CI report file exists
+        run: ls -la packages/assignment-6/lhci_reports
+
+      - name: Post Lighthouse CI results comment
+        if: success()
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.TOKEN_FOR_CI }}
+          script: |
+            const fs = require('fs');
+            const results = JSON.parse(fs.readFileSync("packages/assignment-6/lhci_reports/manifest.json", 'utf-8'));
+            let comments = "";
+
+            results.forEach((result) => {
+              const { summary, jsonPath } = result;
+              const details = JSON.parse(fs.readFileSync(jsonPath));
+              const { audits } = details;
+              const formatResult = (res) => Math.round(res * 100);
+
+              Object.keys(summary).forEach(
+                (key) => (summary[key] = formatResult(summary[key]))
+              );
+
+              const score = (res) => (res >= 90 ? "🟢" : res >= 50 ? "🟠" : "🔴");
+
+              comments = `
+              ## ⚡️ Lighthouse 성능 결과!
+              | Category | Score |
+              | --- | --- |
+              | ${score(summary.performance)} Performance | ${summary.performance} |
+              | ${score(summary.accessibility)} Accessibility | ${summary.accessibility} |
+              | ${score(summary['best-practices'])} Best Practices | ${summary['best-practices']} |
+              | ${score(summary.seo)} SEO | ${summary.seo} |
+              `;
+            })
+
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comments,
+            });
 
   assign_reviewer:
     runs-on: ubuntu-latest
