@@ -8,6 +8,9 @@ on:
     paths:
       - "packages/assignment-6/**"
 
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -60,8 +63,48 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - name: job2 구현
-        run: echo "job2의 내용을 구현해주세요"
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - name: Read .nvmrc
+        id: node_version
+        run: echo "NODE_VERSION=$(cat .nvmrc)" >> $GITHUB_ENV
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Run ESLint
+        id: eslint
+        run: pnpm lint packages/assignment-6 --format json --output-file eslint-report.json
+        continue-on-error: true
+
+      - name: Post ESLint failure comment
+        if: failure()
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const eslintReport = JSON.parse(fs.readFileSync('eslint-report.json', 'utf-8'));
+            const message = `
+            ### ESLint Results
+            ${eslintReport.map(result => `${result.filePath}:${result.messages.map(msg => `${msg.line}:${msg.column} ${msg.message}`).join('\n')}`).join('\n\n')}
+            `;
+
+            // PR에 코멘트를 남김
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: message,
+            });
 
   test:
     runs-on: ubuntu-latest
