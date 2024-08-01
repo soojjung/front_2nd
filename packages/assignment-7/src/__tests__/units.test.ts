@@ -5,6 +5,7 @@ import {
   getWeekDates,
   formatWeek,
   formatMonth,
+  isDateInRange,
 } from "../utils/dateUtils";
 
 type MonthDays = {
@@ -142,6 +143,21 @@ describe("단위 테스트: 날짜 및 시간 관리", () => {
   });
 
   describe("isDateInRange 함수", () => {
-    test.fails("주어진 날짜가 특정 범위 내에 있는지 정확히 판단한다");
+    test("주어진 날짜가 시작 날짜와 종료 날짜 범위 내에 있는지 판단한다.", async () => {
+      const startDate = new Date("2024-07-01");
+      const endDate = new Date("2024-07-31");
+
+      const inRangeDate = new Date("2024-07-15");
+      const outOfRangeDateBefore = new Date("2024-06-30");
+      const outOfRangeDateAfter = new Date("2024-08-01");
+
+      expect(isDateInRange(inRangeDate, startDate, endDate)).toBe(true);
+      expect(isDateInRange(outOfRangeDateBefore, startDate, endDate)).toBe(
+        false
+      );
+      expect(isDateInRange(outOfRangeDateAfter, startDate, endDate)).toBe(
+        false
+      );
+    });
   });
 });
