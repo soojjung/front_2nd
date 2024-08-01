@@ -7,6 +7,9 @@ import {
   formatMonth,
   isDateInRange,
 } from "../utils/dateUtils";
+import { searchEvents, isOverlapping } from "../utils/eventUtils";
+
+import { Event } from "../types";
 
 type MonthDays = {
   [key: number]: number;
@@ -158,6 +161,100 @@ describe("단위 테스트: 날짜 및 시간 관리", () => {
       expect(isDateInRange(outOfRangeDateAfter, startDate, endDate)).toBe(
         false
       );
+    });
+  });
+
+  /** eventUtils 함수 테스트코드 */
+  describe("searchEvents 함수", () => {
+    const events: Event[] = [
+      {
+        id: 1,
+        title: "주간회의",
+        date: "2024-07-25",
+        startTime: "10:00",
+        endTime: "11:00",
+        description: "Weekly team meeting",
+        location: "Conference Room",
+        category: "업무",
+        repeat: { type: "none", interval: 0 },
+        notificationTime: 10,
+      },
+      {
+        id: 2,
+        title: "점심 약속",
+        date: "2024-07-26",
+        startTime: "12:00",
+        endTime: "13:00",
+        description: "친구랑 점심 약속",
+        location: "연남동",
+        category: "개인",
+        repeat: { type: "none", interval: 0 },
+        notificationTime: 10,
+      },
+    ];
+
+    test("검색어가 없을 때 모든 이벤트를 반환한다", () => {
+      const result = searchEvents("", events);
+      expect(result).toEqual(events);
+    });
+
+    test("검색어와 일치하는 이벤트를 정확히 필터링한다", () => {
+      const result = searchEvents("주간회의", events);
+      expect(result).toEqual([events[0]]);
+    });
+
+    test("검색어와 일치하지 않는 경우 빈 배열을 반환한다", () => {
+      const result = searchEvents("party", []);
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe("isOverlapping 함수", () => {
+    const event1: Event = {
+      id: 1,
+      title: "Event 1",
+      date: "2024-07-25",
+      startTime: "10:00",
+      endTime: "11:00",
+      description: "Event 1 description",
+      location: "Location 1",
+      category: "Work",
+      repeat: { type: "none", interval: 0 },
+      notificationTime: 10,
+    };
+
+    const event2: Event = {
+      id: 2,
+      title: "Event 2",
+      date: "2024-07-25",
+      startTime: "10:30",
+      endTime: "11:30",
+      description: "Event 2 description",
+      location: "Location 2",
+      category: "Personal",
+      repeat: { type: "none", interval: 0 },
+      notificationTime: 10,
+    };
+
+    const event3: Event = {
+      id: 3,
+      title: "Event 3",
+      date: "2024-07-25",
+      startTime: "11:30",
+      endTime: "12:30",
+      description: "Event 3 description",
+      location: "Location 3",
+      category: "Personal",
+      repeat: { type: "none", interval: 0 },
+      notificationTime: 10,
+    };
+
+    test("두 일정이 겹치는 경우 true를 반환한다", () => {
+      expect(isOverlapping(event1, event2)).toBe(true);
+    });
+
+    test("두 일정이 겹치지 않는 경우 false를 반환한다", () => {
+      expect(isOverlapping(event1, event3)).toBe(false);
     });
   });
 });
