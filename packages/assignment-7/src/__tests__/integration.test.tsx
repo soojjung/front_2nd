@@ -478,9 +478,112 @@ describe("일정 관리 애플리케이션 통합 테스트", () => {
   });
 
   describe("검색 기능", () => {
-    test.fails("제목으로 일정을 검색하고 정확한 결과가 반환되는지 확인한다");
-    test.fails("제목으로 일정을 검색하고 정확한 결과가 반환되는지 확인한다");
-    test.fails("검색어를 지우면 모든 일정이 다시 표시되어야 한다");
+    let user: ReturnType<typeof userEvent.setup>;
+
+    beforeEach(() => {
+      user = userEvent.setup();
+    });
+
+    test("제목으로 일정을 검색하고 검색된 일정이 렌더링된다.", async () => {
+      render(<App />);
+
+      const searchBar = screen.getByRole("textbox", {
+        name: /일정 검색/i,
+      });
+
+      // 검색어 입력
+      await user.type(searchBar, "팀");
+
+      // '팀'이 포함된 일정만 필터링되어 렌더링되는지 확인
+      const filteredEvents = events.filter((event) =>
+        event.title.includes("팀")
+      );
+
+      for (const event of filteredEvents) {
+        await waitFor(() => {
+          // 특정 이벤트 컨테이너가 렌더링될 때까지 기다림
+          const eventContainer = screen.getByTestId(`event-${event.id}`);
+          expect(eventContainer).toBeInTheDocument();
+
+          // 컨테이너 내에서 이벤트 제목 확인
+          const eventTitle = within(eventContainer).getByText(event.title);
+          expect(eventTitle).toBeInTheDocument();
+        });
+      }
+    });
+
+    test("검색 결과가 없을 때 일정을 렌더링하지 않는다.", async () => {
+      render(<App />);
+
+      const searchBar = screen.getByRole("textbox", {
+        name: /일정 검색/i,
+      });
+
+      // 존재하지 않는 검색어 입력
+      await user.type(searchBar, "존재하지 않는 일정");
+
+      // 검색 결과가 없을 때 일정이 렌더링되지 않는지 확인
+      const filteredEvents = events.filter((event) =>
+        event.title.includes("존재하지 않는 일정")
+      );
+
+      await waitFor(() => {
+        filteredEvents.forEach((event) => {
+          const eventContainer = screen.queryByTestId(`event-${event.id}`);
+          expect(eventContainer).not.toBeInTheDocument();
+        });
+      });
+
+      // 추가로 검색 결과가 없음을 표시하는 메시지 확인
+      expect(screen.getByText(/검색 결과가 없습니다/i)).toBeInTheDocument();
+    });
+
+    test("'팀'으로 검색 후, 검색어를 지우면 7월의 모든 일정이 다시 렌더링된다.", async () => {
+      render(<App />);
+
+      const searchBar = screen.getByRole("textbox", {
+        name: /일정 검색/i,
+      });
+
+      // 검색어 입력
+      await user.type(searchBar, "팀");
+
+      // '팀'이 포함된 일정만 필터링되어 렌더링되는지 확인
+      const filteredEvents = events.filter((event) =>
+        event.title.includes("팀")
+      );
+
+      for (const event of filteredEvents) {
+        await waitFor(() => {
+          // 특정 이벤트 컨테이너가 렌더링될 때까지 기다림
+          const eventContainer = screen.getByTestId(`event-${event.id}`);
+          expect(eventContainer).toBeInTheDocument();
+
+          // 컨테이너 내에서 이벤트 제목 확인
+          const eventTitle = within(eventContainer).getByText(event.title);
+          expect(eventTitle).toBeInTheDocument();
+        });
+      }
+
+      // 검색어 지우기
+      await user.clear(searchBar);
+
+      // 7월의 모든 일정이 다시 렌더링되는지 확인
+      const julyEvents = events.filter(
+        (event) =>
+          new Date(event.date).getMonth() === new Date(SYSTEM_DATE).getMonth()
+      );
+
+      for (const event of julyEvents) {
+        await waitFor(() => {
+          const eventContainer = screen.getByTestId(`event-${event.id}`);
+          expect(eventContainer).toBeInTheDocument();
+
+          const eventTitle = within(eventContainer).getByText(event.title);
+          expect(eventTitle).toBeInTheDocument();
+        });
+      }
+    });
   });
 
   describe("공휴일 표시", () => {
