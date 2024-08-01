@@ -631,9 +631,92 @@ describe("일정 관리 애플리케이션 통합 테스트", () => {
   });
 
   describe("일정 충돌 감지", () => {
-    test.fails("겹치는 시간에 새 일정을 추가할 때 경고가 표시되는지 확인한다");
-    test.fails(
-      "기존 일정의 시간을 수정하여 충돌이 발생할 때 경고가 표시되는지 확인한다"
-    );
+    let user: ReturnType<typeof userEvent.setup>;
+
+    beforeEach(() => {
+      user = userEvent.setup();
+    });
+
+    test("겹치는 시간에 새 일정을 추가할 때 경고가 표시되는지 확인한다", async () => {
+      render(<App />);
+
+      // 겹치는 일정 추가
+      const titleInput = screen.getByTestId("title-input");
+      await user.type(titleInput, "New Overlapping Event");
+
+      const dateInput = screen.getByTestId("date-input");
+      await user.type(dateInput, "2024-07-25");
+
+      const startTimeInput = screen.getByTestId("start-time-input");
+      await user.type(startTimeInput, "10:00");
+
+      const endTimeInput = screen.getByTestId("end-time-input");
+      await user.type(endTimeInput, "11:00");
+
+      const descriptionInput = screen.getByTestId("description-input");
+      await user.type(descriptionInput, "알림 테스트를 위한 새 일정");
+
+      const locationInput = screen.getByTestId("location-input");
+      await user.type(locationInput, "집");
+
+      const categoryInput = screen.getByTestId("category-select");
+      await user.selectOptions(categoryInput, "개인");
+
+      // 저장 버튼 클릭
+      const saveButton = await screen.findByTestId("event-submit-button");
+      await user.click(saveButton);
+
+      // 경고 메시지가 표시되는지 확인
+      await waitFor(() => {
+        const alertElement = screen.getByRole("banner");
+        expect(alertElement).toBeInTheDocument();
+        expect(screen.getByText(/다음 일정과 겹칩니다:/i)).toBeInTheDocument();
+      });
+    });
+
+    test("기존 일정의 시간을 수정하여 충돌이 발생할 때 경고가 표시되는지 확인한다", async () => {
+      render(<App />);
+
+      const otherEvent = events[0];
+
+      // API 호출 후 이벤트 목록이 화면에 렌더링될 때까지 기다립니다.
+      await waitFor(() => {
+        expect(screen.getAllByText(otherEvent.title)[0]).toBeInTheDocument();
+      });
+
+      // 이벤트 ID를 기준으로 이벤트 컨테이너를 찾습니다.
+      const eventContainer = screen.getByTestId(`event-${otherEvent.id}`);
+      expect(eventContainer).not.toBeNull();
+
+      // 이벤트 컨테이너 내에서 수정 버튼을 찾습니다.
+      const editButton = within(eventContainer).getByTestId(
+        `event-edit-icon-${otherEvent!.id}`
+      );
+      await user.click(editButton);
+
+      // 날짜, 시작 시간, 종료 시간을 3번째 이벤트와 겹치는 시간으로 수정
+      const dateInput = screen.getByTestId("date-input");
+      await user.clear(dateInput);
+      await user.type(dateInput, "2024-07-25");
+
+      const startTimeInput = screen.getByTestId("start-time-input");
+      await user.clear(startTimeInput);
+      await user.type(startTimeInput, "10:00");
+
+      const endTimeInput = screen.getByTestId("end-time-input");
+      await user.clear(endTimeInput);
+      await user.type(endTimeInput, "11:00");
+
+      // 저장 버튼 클릭
+      const saveButton = await screen.findByTestId("event-submit-button");
+      await user.click(saveButton);
+
+      // 경고 메시지가 표시되는지 확인
+      await waitFor(() => {
+        const alertElement = screen.getByRole("banner");
+        expect(alertElement).toBeInTheDocument();
+        expect(screen.getByText(/다음 일정과 겹칩니다:/i)).toBeInTheDocument();
+      });
+    });
   });
 });
