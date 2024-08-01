@@ -16,7 +16,7 @@ interface Event {
   notificationTime: number;
 }
 
-export let events: Event[] = [
+const initialEvents: Event[] = [
   {
     id: 1,
     title: "팀 회의",
@@ -106,6 +106,12 @@ export let events: Event[] = [
     })(),
   },
 ];
+
+export let events: Event[] = [...initialEvents];
+
+export const resetEvents = () => {
+  events = [...initialEvents];
+};
 
 export const mockApiHandlers = [
   // 일정 조회

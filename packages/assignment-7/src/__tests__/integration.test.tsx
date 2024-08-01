@@ -8,18 +8,10 @@ import {
   afterAll,
   vi,
 } from "vitest";
-import {
-  render,
-  screen,
-  within,
-  waitFor,
-  fireEvent,
-} from "@testing-library/react";
+import { render, screen, within, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-
 import { setupServer } from "msw/node";
-import { mockApiHandlers, events } from "../mockApiHandlers";
-
+import { mockApiHandlers, events, resetEvents } from "../mockApiHandlers";
 import App from "../App";
 import { getWeekDates } from "../utils/dateUtils";
 import { notificationOptions } from "../constants";
@@ -27,9 +19,6 @@ import { notificationOptions } from "../constants";
 const server = setupServer(...mockApiHandlers);
 
 beforeAll(() => server.listen()); // 테스트 시작 전에 목 서버를 실행
-afterEach(() => {
-  server.resetHandlers(); // 각 테스트 후 핸들러 리셋
-});
 afterAll(() => server.close()); // 테스트 종료 후에 목 서버 종료
 
 describe("일정 관리 애플리케이션 통합 테스트", () => {
@@ -37,15 +26,15 @@ describe("일정 관리 애플리케이션 통합 테스트", () => {
     vi.useFakeTimers({
       shouldAdvanceTime: true,
     });
-    vi.setSystemTime(new Date("2024-07-30"));
+    vi.setSystemTime(new Date("2024-07-30")); // 시스템 시간을 2024-07-30으로 설정
+    resetEvents(); // 각 테스트 전에 이벤트 초기화
   });
 
   afterEach(() => {
-    // server.resetHandlers();
+    server.resetHandlers(); // 각 테스트 후 핸들러 리셋
     vi.clearAllMocks();
-
     vi.runOnlyPendingTimers();
-    vi.useRealTimers();
+    vi.useRealTimers(); // 원래 시간으로 복원
   });
 
   describe("일정 CRUD 및 기본 기능", () => {
@@ -58,10 +47,20 @@ describe("일정 관리 애플리케이션 통합 테스트", () => {
     test("초기 일정이 모두 렌더링 된다.", async () => {
       render(<App />);
 
-      for (const { title } of events) {
-        const elements = await screen.findAllByText(title);
-        elements.forEach((element) => {
-          expect(element).toBeInTheDocument();
+      // 7월에 해당하는 이벤트들만 필터링
+      const julyEvents = events.filter(
+        (event) => new Date(event.date).getMonth() === 6
+      );
+
+      for (const event of julyEvents) {
+        await waitFor(() => {
+          // 특정 이벤트 컨테이너가 렌더링될 때까지 기다림
+          const eventContainer = screen.getByTestId(`event-${event.id}`);
+          expect(eventContainer).toBeInTheDocument();
+
+          // 컨테이너 내에서 이벤트 제목 확인
+          const eventTitle = within(eventContainer).getByText(event.title);
+          expect(eventTitle).toBeInTheDocument();
         });
       }
     });
@@ -279,7 +278,7 @@ describe("일정 관리 애플리케이션 통합 테스트", () => {
       user = userEvent.setup();
     });
 
-    test.only("주별 뷰에 일정이 없으면, 일정이 표시되지 않아야 한다.", async () => {
+    test("주별 뷰에 일정이 없으면, 일정이 표시되지 않아야 한다.", async () => {
       render(<App />);
 
       // 주별 뷰로 전환
