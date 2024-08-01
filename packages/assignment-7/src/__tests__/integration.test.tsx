@@ -16,6 +16,8 @@ import App from "../App";
 import { getWeekDates } from "../utils/dateUtils";
 import { notificationOptions } from "../constants";
 
+const SYSTEM_DATE = "2024-07-30";
+
 const server = setupServer(...mockApiHandlers);
 
 beforeAll(() => server.listen()); // 테스트 시작 전에 목 서버를 실행
@@ -26,7 +28,7 @@ describe("일정 관리 애플리케이션 통합 테스트", () => {
     vi.useFakeTimers({
       shouldAdvanceTime: true,
     });
-    vi.setSystemTime(new Date("2024-07-30")); // 시스템 시간을 2024-07-30으로 설정
+    vi.setSystemTime(new Date(SYSTEM_DATE)); // 시스템 시간을 2024-07-30으로 설정
     resetEvents(); // 각 테스트 전에 이벤트 초기화
   });
 
@@ -44,12 +46,13 @@ describe("일정 관리 애플리케이션 통합 테스트", () => {
       user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     });
 
-    test("초기 일정이 모두 렌더링 된다.", async () => {
+    test("초기 일정 중 현재 달의 일정들이 모두 렌더링 된다.", async () => {
       render(<App />);
 
       // 7월에 해당하는 이벤트들만 필터링
       const julyEvents = events.filter(
-        (event) => new Date(event.date).getMonth() === 6
+        (event) =>
+          new Date(event.date).getMonth() === new Date(SYSTEM_DATE).getMonth()
       );
 
       for (const event of julyEvents) {
@@ -195,7 +198,7 @@ describe("일정 관리 애플리케이션 통합 테스트", () => {
       });
     });
 
-    test("기존 일정의 세부 정보를 수정하고 화면에 업데이트된 일정이 렌더링된다.", async () => {
+    test("기존 일정의 세부 정보를 수정하면 화면에 업데이트된 일정이 렌더링된다.", async () => {
       render(<App />);
 
       const originalEvent = events[0];
@@ -290,7 +293,7 @@ describe("일정 관리 애플리케이션 통합 테스트", () => {
       expect(weekView).toBeInTheDocument();
 
       // 각 날짜에 일정이 없는지 확인
-      const weekDates = getWeekDates(new Date());
+      const weekDates = getWeekDates(new Date()); // 일정이 없는 날짜
       for (const date of weekDates) {
         const dateText = screen.getByText(date.getDate().toString());
         const dateCell = dateText.closest("td");
@@ -300,9 +303,97 @@ describe("일정 관리 애플리케이션 통합 테스트", () => {
       }
     });
 
-    test.fails("주별 뷰에 일정이 정확히 표시되는지 확인한다");
-    test.fails("월별 뷰에 일정이 없으면, 일정이 표시되지 않아야 한다.");
-    test.fails("월별 뷰에 일정이 정확히 표시되는지 확인한다");
+    test("주별 뷰에서 각 날짜에 해당하는 일정이 올바르게 표시되는지 확인한다.", async () => {
+      render(<App />);
+
+      // 주별 뷰로 전환
+      const viewSelect = screen.getByLabelText("view");
+      await user.selectOptions(viewSelect, "week");
+
+      // 주별 뷰 렌더링 확인
+      const weekView = await screen.findByTestId("week-view");
+      expect(weekView).toBeInTheDocument();
+
+      // 현재 날짜로부터 주간 날짜를 가져옵니다.
+      const weekDates = getWeekDates(new Date(SYSTEM_DATE));
+
+      // 주별 뷰에서 각 날짜에 해당하는 일정이 올바르게 표시되는지 확인
+      for (const date of weekDates) {
+        const dateText = screen.getByText(date.getDate().toString());
+        const dateCell = dateText.closest("td");
+        expect(dateCell).toBeInTheDocument();
+
+        // 해당 날짜에 일정을 필터링
+        const eventsForDate = events.filter(
+          (event) => new Date(event.date).toDateString() === date.toDateString()
+        );
+
+        for (const event of eventsForDate) {
+          await waitFor(() => {
+            const eventTitle = within(dateCell!).getByText(event.title);
+            expect(eventTitle).toBeInTheDocument();
+          });
+        }
+      }
+    });
+
+    test("월별 뷰에서 9월의 일정이 없으면 일정이 표시되지 않는지 확인한다.", async () => {
+      render(<App />);
+
+      // 월별 뷰로 전환
+      const viewSelect = screen.getByLabelText("view");
+      await user.selectOptions(viewSelect, "month");
+
+      // 월별 뷰 렌더링 확인
+      const monthView = await screen.findByTestId("month-view");
+      expect(monthView).toBeInTheDocument();
+
+      // 두 번 "Next" 버튼을 클릭하여 9월로 전환
+      const navigateNextButton = screen.getByLabelText("Next");
+      await user.click(navigateNextButton);
+      await user.click(navigateNextButton);
+
+      // 9월의 모든 날짜 셀 확인
+      const allDateCells = screen.getAllByRole("cell");
+
+      for (const dateCell of allDateCells) {
+        await waitFor(() => {
+          const eventsForDate = within(dateCell).queryAllByRole("heading");
+          expect(eventsForDate).toHaveLength(0); // 일정 텍스트 요소가 없어야 함
+        });
+      }
+    });
+
+    test("월별 뷰에서 7월의 일정들이 모두 표시되는지 확인한다.", async () => {
+      render(<App />);
+
+      // 월별 뷰로 전환
+      const viewSelect = screen.getByLabelText("view");
+      await user.selectOptions(viewSelect, "month");
+
+      // 월별 뷰 렌더링 확인
+      const monthView = await screen.findByTestId("month-view");
+      expect(monthView).toBeInTheDocument();
+
+      // 7월의 모든 날짜 셀 확인
+      const julyEvents = events.filter(
+        (event) =>
+          new Date(event.date).getMonth() === new Date(SYSTEM_DATE).getMonth()
+      );
+
+      for (const event of julyEvents) {
+        const eventDate = new Date(event.date).getDate().toString();
+        const eventTitle = event.title;
+
+        await waitFor(() => {
+          const cell = screen.getByRole("cell", {
+            name: new RegExp(`${eventDate} ${eventTitle}`, "i"),
+          });
+
+          expect(cell).toBeInTheDocument();
+        });
+      }
+    });
   });
 
   describe("알림 기능", () => {
