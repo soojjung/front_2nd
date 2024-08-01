@@ -15,8 +15,9 @@ import { mockApiHandlers, events, resetEvents } from "../mockApiHandlers";
 import App from "../App";
 import { getWeekDates } from "../utils/dateUtils";
 import { notificationOptions } from "../constants";
+import { Event } from "../types";
 
-const SYSTEM_DATE = "2024-07-30";
+const SYSTEM_DATE = "2024-07-30T09:00:00";
 
 const server = setupServer(...mockApiHandlers);
 
@@ -337,7 +338,7 @@ describe("일정 관리 애플리케이션 통합 테스트", () => {
       }
     });
 
-    test("월별 뷰에서 9월의 일정이 없으면 일정이 표시되지 않는지 확인한다.", async () => {
+    test("월별 뷰에서 일정이 없으면 일정이 표시되지 않는지 확인한다.", async () => {
       render(<App />);
 
       // 월별 뷰로 전환
@@ -364,7 +365,7 @@ describe("일정 관리 애플리케이션 통합 테스트", () => {
       }
     });
 
-    test("월별 뷰에서 7월의 일정들이 모두 표시되는지 확인한다.", async () => {
+    test("월별 뷰에서 일정들이 모두 표시되는지 확인한다.", async () => {
       render(<App />);
 
       // 월별 뷰로 전환
@@ -397,7 +398,83 @@ describe("일정 관리 애플리케이션 통합 테스트", () => {
   });
 
   describe("알림 기능", () => {
-    test.fails("일정 알림을 설정하고 지정된 시간에 알림이 발생하는지 확인한다");
+    let user: ReturnType<typeof userEvent.setup>;
+
+    beforeEach(() => {
+      user = userEvent.setup();
+    });
+
+    test("일정 알림을 설정하고 지정된 시간에 알림이 발생하는지 확인한다.", async () => {
+      const currentTime = new Date(SYSTEM_DATE);
+      vi.setSystemTime(currentTime);
+      render(<App />);
+
+      // 현재 시간 기준으로 10분 후에 시작하는 이벤트를 추가
+      const testEvent: Event = {
+        id: 999,
+        title: "알림테스트",
+        description: "주간 팀 미팅",
+        location: "회의실 A",
+        category: "업무",
+        repeat: { type: "none", interval: 0 },
+        notificationTime: 10, // 10분 전에 알림
+        ...(() => {
+          const now = currentTime;
+          const startTime = new Date(now.getTime() + 5 * 60000); // 5분 후
+          const endTime = new Date(startTime.getTime() + 60 * 60000); // 시작시간으로부터 1시간 후
+
+          const formatDate = (date: Date) => {
+            return date.toISOString().split("T")[0];
+          };
+
+          const formatTime = (date: Date) => {
+            return date.toTimeString().split(" ")[0].substring(0, 5);
+          };
+
+          return {
+            date: formatDate(now),
+            startTime: formatTime(startTime),
+            endTime: formatTime(endTime),
+          };
+        })(),
+      };
+
+      const eventSubmitButton = screen.getByTestId("event-submit-button");
+      expect(eventSubmitButton).toBeInTheDocument();
+
+      const titleInput = screen.getByTestId("title-input");
+      await user.type(titleInput, testEvent.title);
+
+      const dateInput = screen.getByTestId("date-input");
+      await user.type(dateInput, testEvent.date);
+
+      const startTimeInput = screen.getByTestId("start-time-input");
+      await user.type(startTimeInput, testEvent.startTime);
+
+      const endTimeInput = screen.getByTestId("end-time-input");
+      await user.type(endTimeInput, testEvent.endTime);
+
+      await user.click(eventSubmitButton);
+
+      // 알림이 설정되었는지 확인
+      await waitFor(() => {
+        expect(screen.getByRole("alert")).toBeInTheDocument();
+        expect(
+          screen.getByText(/10분 후 알림테스트 일정이 시작됩니다\./i)
+        ).toBeInTheDocument();
+      });
+
+      // 알림 닫기 버튼 클릭하여 알림 삭제 확인
+      const closeButton = screen.getByRole("button", { name: /close/i });
+      await user.click(closeButton);
+      await waitFor(() => {
+        expect(
+          screen.queryByText(/10분 후 알림테스트 일정이 시작됩니다\./i)
+        ).not.toBeInTheDocument();
+      });
+
+      vi.setSystemTime(currentTime);
+    });
   });
 
   describe("검색 기능", () => {

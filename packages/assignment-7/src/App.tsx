@@ -50,6 +50,7 @@ import {
 } from "./utils/dateUtils";
 
 import { notificationOptions } from "./constants";
+import { useNotification } from "./hooks/useNotification";
 
 const categories = ["업무", "개인", "가족", "기타"];
 
@@ -97,10 +98,12 @@ function App() {
   const [repeatInterval, setRepeatInterval] = useState(1);
   const [repeatEndDate, setRepeatEndDate] = useState("");
   const [notificationTime, setNotificationTime] = useState(10);
-  const [notifications, setNotifications] = useState<
-    { id: number; message: string }[]
-  >([]);
-  const [notifiedEvents, setNotifiedEvents] = useState<number[]>([]);
+  const {
+    notifications,
+    notifiedEvents,
+    checkUpcomingEvents,
+    closeNotification,
+  } = useNotification();
 
   const [isOverlapDialogOpen, setIsOverlapDialogOpen] = useState(false);
   const [overlappingEvents, setOverlappingEvents] = useState<Event[]>([]);
@@ -256,34 +259,6 @@ function App() {
         duration: 3000,
         isClosable: true,
       });
-    }
-  };
-
-  const checkUpcomingEvents = async () => {
-    const now = new Date();
-    const upcomingEvents = events.filter((event) => {
-      const eventStart = new Date(`${event.date}T${event.startTime}`);
-      const timeDiff = (eventStart.getTime() - now.getTime()) / (1000 * 60);
-      return (
-        timeDiff > 0 &&
-        timeDiff <= event.notificationTime &&
-        !notifiedEvents.includes(event.id)
-      );
-    });
-
-    for (const event of upcomingEvents) {
-      try {
-        setNotifications((prev) => [
-          ...prev,
-          {
-            id: event.id,
-            message: `${event.notificationTime}분 후 ${event.title} 일정이 시작됩니다.`,
-          },
-        ]);
-        setNotifiedEvents((prev) => [...prev, event.id]);
-      } catch (error) {
-        console.error("Error updating notification status:", error);
-      }
     }
   };
 
@@ -575,7 +550,9 @@ function App() {
     );
   };
 
-  useInterval(checkUpcomingEvents, 1000); // 1초마다 체크
+  useInterval(() => {
+    checkUpcomingEvents(events);
+  }, 1000); // 1초마다 체크
 
   useEffect(() => {
     const year = currentDate.getFullYear();
@@ -940,11 +917,7 @@ function App() {
               <Box flex="1">
                 <AlertTitle fontSize="sm">{notification.message}</AlertTitle>
               </Box>
-              <CloseButton
-                onClick={() =>
-                  setNotifications((prev) => prev.filter((_, i) => i !== index))
-                }
-              />
+              <CloseButton onClick={() => closeNotification(index)} />
             </Alert>
           ))}
         </VStack>
