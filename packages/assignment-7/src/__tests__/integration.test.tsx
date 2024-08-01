@@ -587,8 +587,47 @@ describe("일정 관리 애플리케이션 통합 테스트", () => {
   });
 
   describe("공휴일 표시", () => {
-    test.fails("달력에 1월 1일(신정)이 공휴일로 표시되는지 확인한다");
-    test.fails("달력에 5월 5일(어린이날)이 공휴일로 표시되는지 확인한다");
+    test("달력에 1월 1일(신정)이 공휴일로 빨간색으로 표시되는지 확인한다.", async () => {
+      // 시간 설정을 1월 1일로 변경
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      vi.setSystemTime(new Date("2024-01-01"));
+
+      render(<App />);
+
+      const monthView = await screen.findByTestId("month-view");
+
+      await waitFor(() => {
+        const januaryFirstCell = within(monthView).getByRole("cell", {
+          name: /신정/,
+        });
+
+        const holidayText = within(januaryFirstCell).getByText("신정");
+        expect(holidayText).toBeInTheDocument();
+        expect(januaryFirstCell).toHaveTextContent("신정");
+        expect(holidayText).toHaveStyle("color: red.500"); // 공휴일 텍스트가 빨간색으로 표시되는지 확인
+      });
+    });
+
+    test("달력에 5월 5일(어린이날)이 공휴일로 빨간색으로 표시되는지 확인한다.", async () => {
+      // 시간 설정을 5월 1일로 변경
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      vi.setSystemTime(new Date("2024-05-01"));
+
+      render(<App />);
+
+      const monthView = await screen.findByTestId("month-view");
+
+      await waitFor(() => {
+        const mayFifthCell = within(monthView).getByRole("cell", {
+          name: /5 어린이날/i,
+        });
+
+        const holidayText = within(mayFifthCell).getByText("어린이날");
+        expect(holidayText).toBeInTheDocument();
+        expect(mayFifthCell).toHaveTextContent("어린이날");
+        expect(holidayText).toHaveStyle("color: red.500"); // 공휴일 텍스트가 빨간색으로 표시되는지 확인
+      });
+    });
   });
 
   describe("일정 충돌 감지", () => {
