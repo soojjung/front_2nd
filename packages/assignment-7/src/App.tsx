@@ -49,17 +49,11 @@ import {
   formatMonth,
 } from "./utils/dateUtils";
 
+import { notificationOptions } from "./constants";
+
 const categories = ["업무", "개인", "가족", "기타"];
 
 const weekDays = ["일", "월", "화", "수", "목", "금", "토"];
-
-const notificationOptions = [
-  { value: 1, label: "1분 전" },
-  { value: 10, label: "10분 전" },
-  { value: 60, label: "1시간 전" },
-  { value: 120, label: "2시간 전" },
-  { value: 1440, label: "1일 전" },
-];
 
 const dummyEvents: Event[] = [];
 
@@ -663,6 +657,7 @@ function App() {
           <FormControl>
             <FormLabel>설명</FormLabel>
             <Input
+              data-testid="description-input"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
             />
@@ -671,6 +666,7 @@ function App() {
           <FormControl>
             <FormLabel>위치</FormLabel>
             <Input
+              data-testid="location-input"
               value={location}
               onChange={(e) => setLocation(e.target.value)}
             />
@@ -679,6 +675,7 @@ function App() {
           <FormControl>
             <FormLabel>카테고리</FormLabel>
             <Select
+              data-testid="category-select"
               value={category}
               onChange={(e) => setCategory(e.target.value)}
             >
@@ -804,6 +801,7 @@ function App() {
             filteredEvents.map((event) => (
               <Box
                 key={event.id}
+                data-testid={`event-${event.id}`}
                 borderWidth={1}
                 borderRadius="lg"
                 p={3}
@@ -858,11 +856,13 @@ function App() {
                   <HStack>
                     <IconButton
                       aria-label="Edit event"
+                      data-testid={`event-edit-icon-${event.id}`}
                       icon={<EditIcon />}
                       onClick={() => editEvent(event)}
                     />
                     <IconButton
                       aria-label="Delete event"
+                      data-testid={`event-delete-icon-${event.id}`}
                       icon={<DeleteIcon />}
                       onClick={() => deleteEvent(event.id)}
                     />
