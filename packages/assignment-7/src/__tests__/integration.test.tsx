@@ -11,7 +11,7 @@ import {
 import { render, screen, within, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { setupServer } from "msw/node";
-import { mockApiHandlers, events, resetEvents } from "../mockApiHandlers";
+import { mockApiHandlers, events, resetEvents } from "../mocks/mockApiHandlers";
 import App from "../App";
 import { getWeekDates } from "../utils/dateUtils";
 import { notificationOptions } from "../constants";
