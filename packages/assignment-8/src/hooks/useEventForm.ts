@@ -1,5 +1,5 @@
 import { ChangeEvent, useState } from "react";
-import { Event, RepeatType } from "../types";
+import { Event, RepeatType, RepeatChild } from "../types";
 import { validateTime } from "../utils/validationTools";
 
 export const useEventForm = () => {
@@ -14,6 +14,7 @@ export const useEventForm = () => {
   const [repeatType, setRepeatType] = useState<RepeatType>("none");
   const [repeatInterval, setRepeatInterval] = useState(1);
   const [repeatEndDate, setRepeatEndDate] = useState("");
+  const [children, setChildren] = useState<RepeatChild[]>([]);
   const [notificationTime, setNotificationTime] = useState(10);
 
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
@@ -46,6 +47,7 @@ export const useEventForm = () => {
     setRepeatType("none");
     setRepeatInterval(1);
     setRepeatEndDate("");
+    setChildren([]);
     setNotificationTime(10);
   };
 
@@ -62,6 +64,7 @@ export const useEventForm = () => {
     setRepeatType(event.repeat.type);
     setRepeatInterval(event.repeat.interval);
     setRepeatEndDate(event.repeat.endDate || "");
+    setChildren(event.repeat.children || []);
     setNotificationTime(event.notificationTime);
   };
 
@@ -88,6 +91,8 @@ export const useEventForm = () => {
     setRepeatInterval,
     repeatEndDate,
     setRepeatEndDate,
+    children,
+    setChildren,
     notificationTime,
     setNotificationTime,
     startTimeError,

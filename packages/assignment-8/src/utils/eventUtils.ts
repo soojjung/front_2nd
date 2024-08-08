@@ -1,5 +1,5 @@
-import { Event } from "../types";
-import { getWeekDates, isDateInRange } from "./dateUtils";
+import { Event, RepeatType } from "../types";
+import { getWeekDates, isDateInRange, formatDate } from "./dateUtils";
 
 const containsTerm = (target: string, term: string) => {
   return target.toLowerCase().includes(term.toLowerCase());
@@ -77,4 +77,47 @@ export const getFilteredEvents = (
   }
 
   return searchedEvents;
+};
+
+export const getRepeatChildren = (
+  date: string,
+  repeatType: RepeatType,
+  repeatInterval: number,
+  repeatEndDate: string
+) => {
+  const newDate = new Date(date);
+  const childEvents = [];
+
+  while (newDate <= new Date(repeatEndDate)) {
+    const calculatedDate = calculateDate(repeatType, repeatInterval, newDate);
+
+    if (new Date(calculatedDate) <= new Date(repeatEndDate)) {
+      childEvents.push({
+        id: Date.now() + "-" + childEvents.length + 1,
+        date: formatDate(newDate),
+      });
+    }
+  }
+
+  return childEvents;
+};
+
+const calculateDate = (
+  repeatType: RepeatType,
+  repeatInterval: number,
+  newDate: Date
+) => {
+  if (repeatType === "daily") {
+    return newDate.setDate(newDate.getDate() + repeatInterval);
+  }
+  if (repeatType === "weekly") {
+    return newDate.setDate(newDate.getDate() + repeatInterval * 7);
+  }
+  if (repeatType === "monthly") {
+    return newDate.setDate(newDate.getMonth() + repeatInterval);
+  }
+  if (repeatType === "yearly") {
+    return newDate.setDate(newDate.getFullYear() + repeatInterval);
+  }
+  return newDate;
 };

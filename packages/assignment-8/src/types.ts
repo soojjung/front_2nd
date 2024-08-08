@@ -1,10 +1,18 @@
 export type RepeatType = "none" | "daily" | "weekly" | "monthly" | "yearly";
 
+export interface RepeatChild {
+  id: string;
+  date: string;
+}
+
 export interface RepeatInfo {
   type: RepeatType;
   interval: number;
   endDate?: string;
+  children: RepeatChild[];
 }
+
+export type ViewType = "week" | "month";
 
 export interface Event {
   id: number;

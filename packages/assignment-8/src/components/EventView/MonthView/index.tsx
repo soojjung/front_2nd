@@ -96,7 +96,10 @@ const MonthView = ({
                         )}
                         {filteredEvents
                           .filter(
-                            (event) => new Date(event.date).getDate() === day
+                            (event) =>
+                              event.repeat.children?.some(
+                                (item) => new Date(item.date)?.getDate() === day
+                              ) || new Date(event.date).getDate() === day
                           )
                           .map((event) => {
                             const isNotified = notifiedEvents.includes(

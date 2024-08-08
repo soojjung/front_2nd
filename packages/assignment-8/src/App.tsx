@@ -1,8 +1,8 @@
 import { useRef, useState } from "react";
 import { Box, Flex, useInterval, useToast } from "@chakra-ui/react";
 
-import { Event } from "./types";
-import { findOverlappingEvents } from "./utils/eventUtils";
+import { Event, RepeatChild } from "./types";
+import { findOverlappingEvents, getRepeatChildren } from "./utils/eventUtils";
 import { validateTime } from "./utils/validationTools.ts";
 
 import EventAddOrUpdate from "./components/EventAddOrUpdate";
@@ -46,6 +46,8 @@ function App() {
     setRepeatInterval,
     repeatEndDate,
     setRepeatEndDate,
+    children,
+    setChildren,
     notificationTime,
     setNotificationTime,
     startTimeError,
@@ -75,6 +77,8 @@ function App() {
   );
 
   const addOrUpdateEvent = async () => {
+    let repeatChildren: RepeatChild[] = [];
+
     if (!title || !date || !startTime || !endTime) {
       toast({
         title: "필수 정보를 모두 입력해주세요.",
@@ -97,6 +101,40 @@ function App() {
       return;
     }
 
+    if (isRepeating) {
+      if (!repeatType || !repeatInterval || !repeatEndDate) {
+        toast({
+          title: "반복 설정에 필요한 정보를 모두 입력해주세요.",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        });
+        return;
+      }
+      if (new Date(date) > new Date(repeatEndDate)) {
+        toast({
+          title: "반복 종료 날짜는 일정 날짜보다 늦어야합니다.",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        });
+        return;
+      }
+      repeatChildren = getRepeatChildren(
+        date,
+        repeatType,
+        repeatInterval,
+        repeatEndDate
+      );
+    }
+    if (!isRepeating) {
+      // 반복 설정에 입력했던 값 초기화
+      setRepeatType("none");
+      setRepeatInterval(1);
+      setRepeatEndDate("");
+      setChildren([]);
+    }
+
     const eventData: Event = {
       id: editingEvent ? editingEvent.id : Date.now(),
       title,
@@ -106,11 +144,14 @@ function App() {
       description,
       location,
       category,
-      repeat: {
-        type: isRepeating ? repeatType : "none",
-        interval: repeatInterval,
-        endDate: repeatEndDate || undefined,
-      },
+      repeat: isRepeating
+        ? {
+            type: repeatType,
+            interval: repeatInterval,
+            endDate: repeatEndDate || undefined,
+            children: repeatChildren,
+          }
+        : { type: "none", interval: 1, endDate: undefined, children: [] },
       notificationTime,
     };
 
@@ -143,11 +184,14 @@ function App() {
       description,
       location,
       category,
-      repeat: {
-        type: isRepeating ? repeatType : "none",
-        interval: repeatInterval,
-        endDate: repeatEndDate || undefined,
-      },
+      repeat: isRepeating
+        ? {
+            type: repeatType,
+            interval: repeatInterval,
+            endDate: repeatEndDate || undefined,
+            children,
+          }
+        : { type: "none", interval: 1, endDate: undefined, children: [] },
       notificationTime,
     });
   };

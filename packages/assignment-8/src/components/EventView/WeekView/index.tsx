@@ -52,8 +52,13 @@ const WeekView = ({ currentDate, filteredEvents, notifiedEvents }: Props) => {
                 {filteredEvents
                   .filter(
                     (event) =>
+                      event.repeat.children?.some(
+                        (item) =>
+                          new Date(item.date)?.toDateString() ===
+                          date.toDateString()
+                      ) ||
                       new Date(event.date).toDateString() ===
-                      date.toDateString()
+                        date.toDateString()
                   )
                   .map((event) => {
                     const isNotified = notifiedEvents.includes(event.id);

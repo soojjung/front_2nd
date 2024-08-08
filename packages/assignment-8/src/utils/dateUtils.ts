@@ -28,6 +28,18 @@ export const formatMonth = (date: Date): string => {
   return `${year}년 ${month}월`;
 };
 
+export const formatDate = (date: Date): string => {
+  return (
+    date.getFullYear() +
+    "-" +
+    (date.getMonth() + 1 < 10
+      ? "0" + (date.getMonth() + 1)
+      : date.getMonth() + 1) +
+    "-" +
+    (date.getDate() < 10 ? "0" + date.getDate() : date.getDate())
+  );
+};
+
 /**
  * 주어진 날짜가 특정 범위 내에 있는지 확인하는 함수
  */
